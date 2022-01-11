@@ -1,0 +1,3 @@
+D:/M1/Representation visuel de donnees/CoursSokolovRayTracing/build/CMakeFiles/tinyraytracer.dir
+D:/M1/Representation visuel de donnees/CoursSokolovRayTracing/build/CMakeFiles/edit_cache.dir
+D:/M1/Representation visuel de donnees/CoursSokolovRayTracing/build/CMakeFiles/rebuild_cache.dir

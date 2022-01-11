@@ -1,0 +1,7 @@
+[
+{
+  "directory": "D:/M1/Representation visuel de donnees/CoursSokolovRayTracing/build",
+  "command": "C:/msys64/mingw64/bin/c++.exe    -Wall -Wextra -pedantic -std=c++11 -O3 -fopenmp -g -o CMakeFiles/tinyraytracer.dir/tinyraytracer.cpp.obj -c \"D:/M1/Representation visuel de donnees/CoursSokolovRayTracing/tinyraytracer.cpp\"",
+  "file": "D:/M1/Representation visuel de donnees/CoursSokolovRayTracing/tinyraytracer.cpp"
+}
+]
