@@ -1,0 +1,12 @@
+﻿################################################################################
+# Ce fichier .gitignore a été automatiquement créé par Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/out/build/x64-Debug
+/vc140.pdb
+/tinyraytracer.pdb
+/tinyraytracer.obj
+/tinyraytracer.ilk
+/tinyraytracer.exe
+/CMakeSettings.json
