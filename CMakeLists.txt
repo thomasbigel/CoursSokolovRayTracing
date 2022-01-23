@@ -16,6 +16,7 @@ function(enable_cxx_compiler_flag_if_supported flag)
     endif()
 endfunction()
 
+
 enable_cxx_compiler_flag_if_supported("-Wall")
 enable_cxx_compiler_flag_if_supported("-g")
 enable_cxx_compiler_flag_if_supported("-Wextra")
@@ -30,17 +31,9 @@ file(GLOB SOURCES
     "${SRC_DIR}/*.cpp"
 )
 
-set(EXECUTABLE_OUTPUT_PATH ${SRC_DIR})
-
-
 # Executable definition and properties
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE "${SRC_DIR}")
-find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
-endif()
-
 
 # STB
 set(STB_DIR "${LIB_DIR}/stb")

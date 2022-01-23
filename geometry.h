@@ -5,6 +5,9 @@
 #include <cassert>
 #include <iostream>
 
+class Matrix;
+/////////////////////////////////////////////////////////////////
+
 template <size_t DIM, typename T> struct vec {
     vec() { for (size_t i=DIM; i--; data_[i] = T()); }
           T& operator[](const size_t i)       { assert(i<DIM); return data_[i]; }
@@ -29,6 +32,7 @@ template <typename T> struct vec<2,T> {
 
 template <typename T> struct vec<3,T> {
     vec() : x(T()), y(T()), z(T()) {}
+    vec(Matrix m);
     vec(T X, T Y, T Z) : x(X), y(Y), z(Z) {}
           T& operator[](const size_t i)       { assert(i<3); return i<=0 ? x : (1==i ? y : z); }
     const T& operator[](const size_t i) const { assert(i<3); return i<=0 ? x : (1==i ? y : z); }
@@ -67,6 +71,10 @@ template<size_t DIM,typename T,typename U> vec<DIM,T> operator*(const vec<DIM,T>
     return ret;
 }
 
+template<typename T> vec<3,T> operator^(const vec<3,T> &lhs, const vec<3,T> rhs) {
+    return vec<3,T>(lhs.y*rhs.z-lhs.z*rhs.y, lhs.z*rhs.x-lhs.x*rhs.z, lhs.x*rhs.y-lhs.y*rhs.x);
+}
+
 template<size_t DIM,typename T> vec<DIM,T> operator-(const vec<DIM,T> &lhs) {
     return lhs*T(-1);
 }
@@ -81,4 +89,24 @@ template <size_t DIM, typename T> std::ostream& operator<<(std::ostream& out, co
     }
     return out ;
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+class Matrix {
+    std::vector<std::vector<float> > m;
+    int rows, cols;
+public:
+    Matrix(int r=4, int c=4);
+    Matrix(Vec3f v);
+    int nrows();
+    int ncols();
+    static Matrix identity(int dimensions);
+    std::vector<float>& operator[](const int i);
+    Matrix operator*(const Matrix& a);
+    Matrix transpose();
+    Matrix inverse();
+    friend std::ostream& operator<<(std::ostream& s, Matrix& m);
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////
 #endif //__GEOMETRY_H__

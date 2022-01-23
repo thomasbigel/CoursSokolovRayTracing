@@ -13,8 +13,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+
 int envmap_width, envmap_height;
 std::vector<Vec3f> envmap;
+
+const int nbFrame = 360;
 
 struct Light {
     Light(const Vec3f &p, const float &i) : position(p), intensity(i) {}
@@ -51,6 +54,7 @@ struct Box {
     Box(const Vec3f &p1, const Vec3f &p2, const Material &m) : point1(p1), point2(p2), material(m) {}
 
     bool ray_intersect(const Vec3f &orig, const Vec3f &dir, float &t0) const {
+        /*
         Vec3f tMin = Vec3f((point1.x - orig.x) / dir.x, (point1.y - orig.y) / dir.y, (point1.z - orig.z) / dir.z);
         Vec3f tMax = Vec3f((point2.x - orig.x) / dir.x, (point2.y - orig.y) / dir.y, (point2.z - orig.z) / dir.z);
         Vec3f t1;
@@ -69,12 +73,53 @@ struct Box {
         if(t0>tFar)return false;
         return true;
 
+        */
+
         //Vec3f t1 = std::min(tMin, tMax);
         //Vec3f t2 = std::max(tMin, tMax);
         //t0 = std::max(std::max(t1.x, t1.y), t1.z);
         //float tFar = std::min(std::min(t2.x, t2.y), t2.z);
         //if(t0>tFar)return false;
         //return true;
+
+        float tmin = (point1.x - orig.x) / dir.x; 
+        float tmax = (point2.x - orig.x) / dir.x; 
+    
+        if (tmin > tmax) std::swap(tmin, tmax); 
+    
+        float tymin = (point1.y - orig.y) / dir.y; 
+        float tymax = (point2.y - orig.y) / dir.y; 
+    
+        if (tymin > tymax) std::swap(tymin, tymax); 
+    
+        if ((tmin > tymax) || (tymin > tmax)) 
+            return false; 
+    
+        if (tymin > tmin) 
+            tmin = tymin; 
+    
+        if (tymax < tmax) 
+            tmax = tymax; 
+    
+        float tzmin = (point1.z - orig.z) / dir.z;  
+        float tzmax = (point2.z - orig.z) / dir.z; 
+    
+        if (tzmin > tzmax) std::swap(tzmin, tzmax); 
+    
+        if ((tmin > tzmax) || (tzmin > tmax)) 
+            return false; 
+    
+        if (tzmin > tmin) 
+            tmin = tzmin; 
+    
+        if (tzmax < tmax) 
+            tmax = tzmax; 
+
+    
+        t0 = tmin;
+        if (t0 < 0) return false;
+        return true; 
+        
     }
 };
 
@@ -116,6 +161,7 @@ bool scene_intersect(const Vec3f &orig, const Vec3f &dir, Model *model, const st
 
     //model
     float models_dist = std::numeric_limits<float>::max();
+
     if(model->intersect_bbox(orig, dir)){
         for (int i=0; i<model->nfaces(); i++) {
             float dist_i;
@@ -160,10 +206,24 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, Model *model, const std::vec
 
         */
         
+        
         int i = ((int)((atan2(dir.z, dir.x) / (2 * M_PI) + 0.5) * envmap_width));
         int j = (int)(acos(dir.y) / M_PI * envmap_height);
 
-        return envmap[i+j*envmap_width];
+        return envmap[(i+j*envmap_width)%(envmap_width*envmap_height)];
+        
+/*
+        Vec3f p = dir;
+        float theta = acosf(p.y / p.norm());
+        float phi = atan2f(p.z, p.x) + M_PI;
+
+        int i = theta / (M_PI) * (envmap_height);
+        int j = phi / (2 * M_PI) * (envmap_width);
+
+        //return envmap[std::min(i + j * envmap_width, envmap_width*envmap_height-1)];
+        return envmap[(i + j * envmap_width)%(envmap_width*envmap_height)];
+
+*/
 
         /*
         Vec3f p = dir;
@@ -202,6 +262,73 @@ Vec3f cast_ray(const Vec3f &orig, const Vec3f &dir, Model *model, const std::vec
     return material.diffuse_color * diffuse_light_intensity * material.albedo[0] + Vec3f(1., 1., 1.)*specular_light_intensity * material.albedo[1] + reflect_color*material.albedo[2] + refract_color*material.albedo[3];
 }
 
+float frame = 0;
+
+float depthMat = 2000.f;
+
+Vec3f m2v(Matrix m) {
+    return Vec3f(m[0][0]/m[3][0], m[1][0]/m[3][0], m[2][0]/m[3][0]);
+}
+
+Matrix v2m(Vec3f v) {
+    Matrix m(4, 1);
+    m[0][0] = v.x;
+    m[1][0] = v.y;
+    m[2][0] = v.z;
+    m[3][0] = 1.f;
+    return m;
+}
+
+Matrix viewport(int x, int y, int w, int h) {
+    Matrix m = Matrix::identity(4);
+    m[0][3] = x+w/2.f;
+    m[1][3] = y+h/2.f;
+    m[2][3] = depthMat/2.f;
+
+    m[0][0] = w/2.f;
+    m[1][1] = h/2.f;
+    m[2][2] = depthMat/2.f;
+    return m;
+}
+
+Matrix lookat(Vec3f eye, Vec3f center, Vec3f up) {
+    Vec3f z = (eye-center).normalize();
+    Vec3f x = (up^z).normalize();
+    Vec3f y = (z^x).normalize();
+    Matrix res = Matrix::identity(4);
+    for (int i=0; i<3; i++) {
+        res[0][i] = x[i];
+        res[1][i] = y[i];
+        res[2][i] = z[i];
+        res[i][3] = -center[i];
+    }
+    return res;
+}
+
+Matrix rot_z(const float angle) {
+    Matrix R = Matrix::identity(4);
+    R[0][0] = R[2][2] = cos(angle);
+    R[2][0] = sin(angle);
+    R[0][2] = -R[2][0];
+    return R;
+}
+
+Matrix rot_y(const float angle) {
+    Matrix R = Matrix::identity(4);
+    R[0][0] = R[1][1] = cos(angle);
+    R[1][0] = sin(angle);
+    R[0][1] = -R[1][0];
+    return R;
+}
+
+Matrix rot_x(const float angle) {
+    Matrix R = Matrix::identity(4);
+    R[1][1] = R[2][2] = cos(angle);
+    R[1][2] = sin(angle);
+    R[2][1] = -R[1][2];
+    return R;
+}
+
 void render(Model *model, const std::vector<Box> &boxes, const std::vector<Sphere> &spheres, const std::vector<Light> &lights) {
     const int width    = 1024;
     const int height   = 768;
@@ -211,10 +338,16 @@ void render(Model *model, const std::vector<Box> &boxes, const std::vector<Spher
     #pragma omp parallel for
     for (size_t j = 0; j<height; j++) {
         for (size_t i = 0; i<width; i++) {
-            float x =  (2*(i + 0.5)/(float)width  - 1)*tan(fov/2.)*width/(float)height;
-            float y = -(2*(j + 0.5)/(float)height - 1)*tan(fov/2.);
-            Vec3f dir = Vec3f(x, y, -1).normalize();
-            framebuffer[i+j*width] = cast_ray(Vec3f(0,0,0), dir, model, boxes, spheres, lights);
+            //float x =  (2*(i + 0.5)/(float)width  - 1)*tan(fov/2.)*width/(float)height;
+            //float y = -(2*(j + 0.5)/(float)height - 1)*tan(fov/2.);
+            float x =  (i + 0.5) -  width/2.;
+            float y = -(j + 0.5) + height/2.;    // this flips the image at the same time
+            float z = -height/(2.*tan(fov/2.));
+
+            Vec3f dir = Vec3f(x, y, z);
+            Vec3f orig = Vec3f(0,0,0);
+
+            framebuffer[i+j*width] = cast_ray(orig, dir.normalize(), model, boxes, spheres, lights);
         }
     }
 
@@ -230,6 +363,79 @@ void render(Model *model, const std::vector<Box> &boxes, const std::vector<Spher
         }
     }
     ofs.close();
+}
+
+void renderGif(Model *model, const std::vector<Box> &boxes, const std::vector<Sphere> &spheres, const std::vector<Light> &lights, const int &frame) {
+    const int width    = 1024;
+    const int height   = 768;
+    const int fov      = M_PI/2.;
+    std::vector<Vec3f> framebuffer(width*height);
+    Vec3f eye = {0,0,0};
+    Vec3f center = {0,0,-15};
+
+
+    Matrix ModelView  = lookat(eye, center, Vec3f(0,1,0));
+    Matrix Projection = Matrix::identity(4);
+    Matrix ViewPort   = viewport(width/8, height/8, width*3/4, height*3/4);
+    Projection[3][2] = -1.f/(eye-center).norm();
+
+    Matrix z = (ViewPort*Projection*ModelView);
+
+    //std::cout << ModelView << std::endl;
+
+    float angle = 1 * nbFrame / 360.0;
+    Matrix R = rot_z(angle * frame * M_PI / 180.0 );
+
+    //std::cout << "apres rot" << std::endl;
+
+    Matrix test = R * ModelView;
+    
+    //td::cout << test << std::endl;
+
+    //std::cout << "rotation vecteur centre" << std::endl;
+
+    Vec3f test2 = Vec3f(R * center);
+    
+    //std::cout << test2 << std::endl;
+
+    #pragma omp parallel for
+    for (size_t j = 0; j<height; j++) {
+        for (size_t i = 0; i<width; i++) {
+            Vec3f center = {0,0,-15};
+            //float x =  (2*(i + 0.5)/(float)width  - 1)*tan(fov/2.)*width/(float)height;
+            //float y = -(2*(j + 0.5)/(float)height - 1)*tan(fov/2.);
+            float x =  (i + 0.5) -  width/2.;
+            float y = -(j + 0.5) + height/2.;    // this flips the image at the same time
+            float z = -height/(2.*tan(fov/2.));
+
+            Vec3f dir = Vec3f(x, y, z);
+            Vec3f orig = Vec3f(0,0,0);
+
+            dir = Vec3f(R*Matrix(dir));
+
+            orig = center - Vec3f(R * center);
+
+            //std::cout << orig << std::endl;
+
+
+            framebuffer[i+j*width] = cast_ray(orig, dir.normalize(), model, boxes, spheres, lights);
+        }
+    }
+
+    std::vector<unsigned char> pixmap(width*height*3);
+    for (size_t i = 0; i < height*width; ++i) {
+        Vec3f &c = framebuffer[i];
+        float max = std::max(c[0], std::max(c[1], c[2]));
+        if (max>1) c = c*(1./max);
+        for (size_t j = 0; j<3; j++) {
+            pixmap[i*3+j] = (unsigned char)(255 * std::max(0.f, std::min(1.f, framebuffer[i][j])));
+        }
+    }
+    std::string fileName = "tmp/out_" + std::to_string(frame) + ".jpg";
+    stbi_write_jpg(fileName.c_str(), width, height, 3, pixmap.data(), 100);
+
+    std::string frameString = "Gif frame " + std::to_string(frame) + "/" + std::to_string(nbFrame);
+    std::cout << frameString << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -276,6 +482,16 @@ int main(int argc, char** argv) {
     lights.push_back(Light(Vec3f( 30, 20,  30), 1.7));
 
     render(model, boxes, spheres, lights);
+
+    
+    system("mkdir -p tmp");
+    for(size_t i = 0; i < nbFrame; i++){
+        renderGif(model, boxes, spheres, lights, i);
+    }
+    system("ffmpeg -f image2 -framerate 24 -i tmp/out_%d.jpg out.gif");
+    system("rm -r tmp");
+
+    std::cout << "Gif créé" << std::endl;
 
     return 0;
 }

@@ -123,6 +123,33 @@ tinyraytracer/fast:
 	$(MAKE) -f CMakeFiles/tinyraytracer.dir/build.make CMakeFiles/tinyraytracer.dir/build
 .PHONY : tinyraytracer/fast
 
+geometry.o: geometry.cpp.o
+
+.PHONY : geometry.o
+
+# target to build an object file
+geometry.cpp.o:
+	$(MAKE) -f CMakeFiles/tinyraytracer.dir/build.make CMakeFiles/tinyraytracer.dir/geometry.cpp.o
+.PHONY : geometry.cpp.o
+
+geometry.i: geometry.cpp.i
+
+.PHONY : geometry.i
+
+# target to preprocess a source file
+geometry.cpp.i:
+	$(MAKE) -f CMakeFiles/tinyraytracer.dir/build.make CMakeFiles/tinyraytracer.dir/geometry.cpp.i
+.PHONY : geometry.cpp.i
+
+geometry.s: geometry.cpp.s
+
+.PHONY : geometry.s
+
+# target to generate assembly for a file
+geometry.cpp.s:
+	$(MAKE) -f CMakeFiles/tinyraytracer.dir/build.make CMakeFiles/tinyraytracer.dir/geometry.cpp.s
+.PHONY : geometry.cpp.s
+
 model.o: model.cpp.o
 
 .PHONY : model.o
@@ -186,6 +213,9 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
 	@echo "... tinyraytracer"
+	@echo "... geometry.o"
+	@echo "... geometry.i"
+	@echo "... geometry.s"
 	@echo "... model.o"
 	@echo "... model.i"
 	@echo "... model.s"
