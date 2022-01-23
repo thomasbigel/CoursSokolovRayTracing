@@ -2,7 +2,7 @@
 
 #### Image Output
 
-![image output](./out.ppm?raw=true)
+![image output](./out.jpg)
 
 #### GIF Output
 
